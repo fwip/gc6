@@ -364,19 +364,69 @@ func fullMaze() *Maze {
 	return z
 }
 
-func (m *Maze) AddBounds(){
-	xmax := m.Width()-1
+func (m *Maze) addBounds() {
+	xmax := m.Width() - 1
 	ymax := m.Height() - 1
-	for x := 0; x <= xmax ; x++{
+	for x := 0; x <= xmax; x++ {
 		m.rooms[0][x].AddWall(mazelib.N)
 		m.rooms[ymax][x].AddWall(mazelib.S)
-		fmt.Println("x", x, m.rooms[0][x], m.rooms[ymax][x])
 	}
-	for y := 0; y <= ymax ; y++{
+	for y := 0; y <= ymax; y++ {
 		m.rooms[y][0].AddWall(mazelib.W)
 		m.rooms[y][xmax].AddWall(mazelib.E)
-		fmt.Println("y", y, m.rooms[y][0], m.rooms[y][xmax])
 	}
+}
+
+func (m *Maze) randCoord() mazelib.Coordinate {
+	return mazelib.Coordinate{X: rand.Intn(m.Width()), Y: rand.Intn(m.Height())}
+}
+
+func (m *Maze) placeRandomly() {
+	m.start = m.randCoord()
+	m.end = m.randCoord()
+}
+
+func (m *Maze) isSolvable() bool {
+	return m.isConnected(m.start, m.end, nil)
+}
+
+func (m *Maze) isConnected(start, end mazelib.Coordinate, visited map[mazelib.Coordinate]struct{}) bool {
+	if start == end {
+		return true
+	}
+
+	if visited == nil {
+		visited = make(map[mazelib.Coordinate]struct{}, 0)
+	}
+
+	for _, c := range m.getAdjacent(start) {
+		_, seen := visited[c]
+		if !seen {
+			visited[c] = struct{}{}
+			if m.isConnected(c, end, visited) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func (m *Maze) getAdjacent(c mazelib.Coordinate) []mazelib.Coordinate {
+	adjacent := make([]mazelib.Coordinate, 0, 4)
+	room := m.rooms[c.Y][c.X]
+	if !room.Walls.Top {
+		adjacent = append(adjacent, mazelib.Coordinate{c.X, c.Y - 1})
+	}
+	if !room.Walls.Bottom {
+		adjacent = append(adjacent, mazelib.Coordinate{c.X, c.Y + 1})
+	}
+	if !room.Walls.Left {
+		adjacent = append(adjacent, mazelib.Coordinate{c.X - 1, c.Y})
+	}
+	if !room.Walls.Right {
+		adjacent = append(adjacent, mazelib.Coordinate{c.X + 1, c.Y})
+	}
+	return adjacent
 }
 
 // TODO: Write your maze creator function here
@@ -389,7 +439,14 @@ func createMaze() *Maze {
 	// Use the mazelib.AddWall & mazelib.RmWall to do this
 
 	m := emptyMaze()
-	m.AddBounds()
+	m.addBounds()
+
+	m.placeRandomly()
+	for !m.isSolvable() {
+		m.placeRandomly()
+	}
+	m.SetStartPoint(m.start.X, m.start.Y)
+	m.SetTreasure(m.end.X, m.end.Y)
 
 	return m
 }
