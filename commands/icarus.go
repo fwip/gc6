@@ -27,6 +27,17 @@ import (
 	"github.com/spf13/viper"
 )
 
+var dirName = map[int]string{
+	mazelib.N: "up",
+	mazelib.S: "down",
+	mazelib.W: "left",
+	mazelib.E: "right",
+}
+
+type solver interface {
+	Solve(<-chan mazelib.Survey, chan<- int)
+}
+
 // Defining the icarus command.
 // This will be called as 'laybrinth icarus'
 var icarusCmd = &cobra.Command{
@@ -115,12 +126,112 @@ func ToReply(in []byte) mazelib.Reply {
 	return *res
 }
 
+type tremaux struct {
+	memory  map[mazelib.Coordinate]mazelib.Survey
+	visited map[mazelib.Coordinate]int
+	pos     mazelib.Coordinate
+	dir     int
+}
+
+func nextCoord(c mazelib.Coordinate, direction int) mazelib.Coordinate {
+	out := mazelib.Coordinate{X: c.X, Y: c.Y}
+	switch direction {
+	case mazelib.N:
+		out.Y--
+	case mazelib.S:
+		out.Y++
+	case mazelib.E:
+		out.X--
+	case mazelib.W:
+		out.X++
+	}
+	return out
+}
+
+func validDirections(s mazelib.Survey) []int {
+	adjacent := make([]int, 0, 4)
+	if !s.Top {
+		adjacent = append(adjacent, mazelib.N)
+	}
+	if !s.Bottom {
+		adjacent = append(adjacent, mazelib.S)
+	}
+	if !s.Left {
+		adjacent = append(adjacent, mazelib.W)
+	}
+	if !s.Right {
+		adjacent = append(adjacent, mazelib.E)
+	}
+	return adjacent
+}
+
+func (s tremaux) Solve(surveys <-chan mazelib.Survey, cmds chan<- int) {
+	s.dir = mazelib.N
+
+	s.memory = make(map[mazelib.Coordinate]mazelib.Survey)
+	s.visited = make(map[mazelib.Coordinate]int)
+
+	for survey := range surveys {
+		s.visited[s.pos]++
+		s.memory[s.pos] = survey
+
+		// TODO: This is bad code
+		valid := validDirections(survey)
+		s.dir = valid[0]
+		for _, dir := range valid {
+			c := nextCoord(s.pos, dir)
+			if s.visited[c] == 1 {
+				s.dir = dir
+			}
+		}
+		for _, dir := range valid {
+			c := nextCoord(s.pos, dir)
+			if s.visited[c] == 0 {
+				s.dir = dir
+			}
+		}
+		//TODO: Implement turn-around "penalty"
+
+		s.pos = nextCoord(s.pos, s.dir)
+		cmds <- s.dir
+	}
+}
+
+func runSolver(s solver) {
+	surveys := make(chan mazelib.Survey)
+	cmds := make(chan int)
+
+	go s.Solve(surveys, cmds)
+
+	var err error
+	survey := awake()
+	surveys <- survey
+
+	for dir := range cmds {
+		name, ok := dirName[dir]
+		if !ok {
+			fmt.Println("Solver returned", dir, ", not N S E W (1-4)")
+			return
+		}
+
+		fmt.Println("Going", name)
+		survey, err = Move(name)
+
+		if err.Error() != "" {
+			fmt.Println("Error!", err)
+			close(surveys)
+			return
+		}
+		surveys <- survey
+	}
+
+}
+
 // TODO: This is where you work your magic
 func solveMaze() {
-	_ = awake() // Need to start with waking up to initialize a new maze
+	//_ = awake() // Need to start with waking up to initialize a new maze
 	// You'll probably want to set this to a named value and start by figuring
 	// out which step to take next
-
-	//TODO: Write your solver algorithm here
+	runSolver(tremaux{})
 
 }
