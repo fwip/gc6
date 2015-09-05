@@ -364,6 +364,21 @@ func fullMaze() *Maze {
 	return z
 }
 
+func (m *Maze) AddBounds(){
+	xmax := m.Width()-1
+	ymax := m.Height() - 1
+	for x := 0; x <= xmax ; x++{
+		m.rooms[0][x].AddWall(mazelib.N)
+		m.rooms[ymax][x].AddWall(mazelib.S)
+		fmt.Println("x", x, m.rooms[0][x], m.rooms[ymax][x])
+	}
+	for y := 0; y <= ymax ; y++{
+		m.rooms[y][0].AddWall(mazelib.W)
+		m.rooms[y][xmax].AddWall(mazelib.E)
+		fmt.Println("y", y, m.rooms[y][0], m.rooms[y][xmax])
+	}
+}
+
 // TODO: Write your maze creator function here
 func createMaze() *Maze {
 
@@ -373,5 +388,8 @@ func createMaze() *Maze {
 	// You need to Add and Remove walls as needed.
 	// Use the mazelib.AddWall & mazelib.RmWall to do this
 
-	return emptyMaze()
+	m := emptyMaze()
+	m.AddBounds()
+
+	return m
 }
