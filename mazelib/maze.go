@@ -141,17 +141,17 @@ func PrintMaze(m MazeI) {
 			}
 			if s.Bottom {
 				if r.Treasure {
-					str += "⏅_"
+					str += "W_"
 				} else if r.Start {
-					str += "⏂_"
+					str += "I_"
 				} else {
 					str += "__"
 				}
 			} else {
 				if r.Treasure {
-					str += "⏃ "
+					str += "W "
 				} else if r.Start {
-					str += "⏀ "
+					str += "I "
 				} else {
 					str += "  "
 				}
