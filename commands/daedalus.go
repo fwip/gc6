@@ -38,6 +38,22 @@ type Maze struct {
 	StepsTaken int
 }
 
+type direction byte
+
+func (d direction) Reverse() direction {
+	switch d {
+	case mazelib.N:
+		return mazelib.S
+	case mazelib.S:
+		return mazelib.N
+	case mazelib.E:
+		return mazelib.W
+	case mazelib.W:
+		return mazelib.E
+	}
+	panic("Not a direction")
+}
+
 // Tracking the current maze being solved
 
 // WARNING: This approach is not safe for concurrent use
@@ -65,6 +81,7 @@ var daedalusCmd = &cobra.Command{
 func init() {
 	rand.Seed(time.Now().UTC().UnixNano()) // need to initialize the seed
 	gin.SetMode(gin.ReleaseMode)
+	gin.DefaultWriter = noop{}
 
 	RootCmd.AddCommand(daedalusCmd)
 }
@@ -221,7 +238,6 @@ func (m *Maze) SetTreasure(x, y int) error {
 // Will return ErrVictory if Icarus is at the treasure.
 func (m *Maze) LookAround() (mazelib.Survey, error) {
 	if m.end.X == m.icarus.X && m.end.Y == m.icarus.Y {
-		fmt.Printf("Victory achieved in %d steps \n", m.StepsTaken)
 		return mazelib.Survey{}, mazelib.ErrVictory
 	}
 
@@ -421,6 +437,57 @@ func (m *Maze) getAdjacent(c mazelib.Coordinate) []mazelib.Coordinate {
 	return adjacent
 }
 
+func (m *Maze) braidFill() {
+	for wallCount := 0; wallCount < 550; wallCount++ {
+		loc := m.randCoord()
+		dir := mazelib.E
+		if rand.Intn(2) == 1 {
+			dir = mazelib.S
+		}
+		loc2 := nextCoord(loc, dir)
+		r1, err1 := m.GetRoom(loc.X, loc.Y)
+		r2, err2 := m.GetRoom(loc2.X, loc2.Y)
+
+		if err1 != nil || err2 != nil || numWalls(r1) > 1 || numWalls(r2) > 1 {
+			continue
+		} else {
+			r1.AddWall(dir)
+			r2.AddWall(int(direction(dir).Reverse()))
+		}
+	}
+}
+
+func (m *Maze) containsOneWayWalls() bool {
+	for y := 0; y < m.Height()-1; y++ {
+		for x := 0; x < m.Width()-1; x++ {
+			if (m.rooms[y][x].Walls.Bottom != m.rooms[y+1][x].Walls.Top) || (m.rooms[y][x].Walls.Right != m.rooms[y][x+1].Walls.Left) {
+				return true
+			}
+
+		}
+	}
+	return false
+}
+
+func numWalls(r *mazelib.Room) int {
+	return 4 - len(validDirections(r.Walls))
+}
+
+func (m *Maze) addWall(c mazelib.Coordinate, dir int) (ok bool) {
+
+	c2 := nextCoord(c, dir)
+	r1, err1 := m.GetRoom(c.X, c.Y)
+	r2, err2 := m.GetRoom(c2.X, c2.Y)
+
+	if err1 != nil || err2 != nil || numWalls(r1) > 1 || numWalls(r2) > 1 {
+		fmt.Println(err1, err2, r1, r2, numWalls(r1), numWalls(r2))
+		return false
+	}
+	r1.AddWall(dir)
+	r2.AddWall(int(direction(dir).Reverse()))
+	return true
+}
+
 // TODO: Write your maze creator function here
 func createMaze() *Maze {
 
@@ -433,12 +500,18 @@ func createMaze() *Maze {
 	m := emptyMaze()
 	m.addBounds()
 
+	m.braidFill()
+
 	m.placeRandomly()
 	for !m.isSolvable() {
 		m.placeRandomly()
 	}
 	m.SetStartPoint(m.start.X, m.start.Y)
 	m.SetTreasure(m.end.X, m.end.Y)
+
+	if m.containsOneWayWalls() {
+		panic("Oh no! One way walls!")
+	}
 
 	return m
 }
