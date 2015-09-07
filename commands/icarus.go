@@ -126,112 +126,6 @@ func ToReply(in []byte) mazelib.Reply {
 	return *res
 }
 
-type tremaux struct {
-	memory       map[mazelib.Coordinate]mazelib.Survey
-	visited      map[mazelib.Coordinate]int
-	pos          mazelib.Coordinate
-	dir          int
-	backtracking bool
-}
-
-func nextCoord(c mazelib.Coordinate, direction int) mazelib.Coordinate {
-	out := mazelib.Coordinate{X: c.X, Y: c.Y}
-	switch direction {
-	case mazelib.N:
-		out.Y--
-	case mazelib.S:
-		out.Y++
-	case mazelib.E:
-		out.X++
-	case mazelib.W:
-		out.X--
-	}
-	return out
-}
-
-func validDirections(s mazelib.Survey) []int {
-	adjacent := make([]int, 0, 4)
-	if !s.Top {
-		adjacent = append(adjacent, mazelib.N)
-	}
-	if !s.Bottom {
-		adjacent = append(adjacent, mazelib.S)
-	}
-	if !s.Left {
-		adjacent = append(adjacent, mazelib.W)
-	}
-	if !s.Right {
-		adjacent = append(adjacent, mazelib.E)
-	}
-	return adjacent
-}
-
-func canGo(s mazelib.Survey, dir int) bool {
-	switch dir {
-	case mazelib.N:
-		return !s.Top
-	case mazelib.S:
-		return !s.Bottom
-	case mazelib.E:
-		return !s.Right
-	case mazelib.W:
-		return !s.Left
-	}
-	return false
-}
-
-func isJunction(svy mazelib.Survey) bool {
-	return len(validDirections(svy)) > 2
-}
-
-func (s *tremaux) nextDir(survey mazelib.Survey) int {
-	valid := validDirections(survey)
-	minDir := valid[0]
-	minCost := s.visited[nextCoord(s.pos, minDir)]
-
-	for _, dir := range valid[1:] {
-		cost := s.visited[nextCoord(s.pos, dir)]
-		if cost < minCost {
-			minDir = dir
-			minCost = cost
-		}
-	}
-
-	return minDir
-}
-
-func (s *tremaux) Solve(surveys <-chan mazelib.Survey, cmds chan<- int) {
-	defer close(cmds)
-	s.dir = mazelib.N
-
-	s.memory = make(map[mazelib.Coordinate]mazelib.Survey)
-	s.visited = make(map[mazelib.Coordinate]int)
-
-	for survey := range surveys {
-		s.visited[s.pos]++
-		s.memory[s.pos] = survey
-
-		newdir := s.nextDir(survey)
-		ahead := nextCoord(s.pos, newdir)
-		if !s.backtracking && s.visited[ahead] > 0 {
-			newdir = int(direction(s.dir).Reverse())
-			s.backtracking = true
-		}
-
-		if int(direction(newdir).Reverse()) == s.dir {
-			s.visited[s.pos]++
-		}
-
-		if s.visited[ahead] == 0 {
-			s.backtracking = false
-		}
-
-		s.dir = newdir
-		s.pos = nextCoord(s.pos, s.dir)
-		cmds <- s.dir
-	}
-}
-
 func runSolver(s solver) {
 	surveys := make(chan mazelib.Survey, 1)
 	cmds := make(chan int)
@@ -269,19 +163,6 @@ func runSolver(s solver) {
 
 }
 
-type noop struct{}
-
-func (s noop) Solve(surveys <-chan mazelib.Survey, cmds chan<- int) {
-	close(cmds)
-}
-
-func (s noop) Write(p []byte) (n int, err error) { return len(p), nil }
-
-// TODO: This is where you work your magic
 func solveMaze() {
-	//_ = awake() // Need to start with waking up to initialize a new maze
-	// You'll probably want to set this to a named value and start by figuring
-	// out which step to take next
-	runSolver(&tremaux{})
-
+	runSolver(&nearest{})
 }
