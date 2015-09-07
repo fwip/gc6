@@ -9,6 +9,10 @@ type nearest struct {
 	path   path
 }
 
+func newNearest() solver {
+	return &nearest{}
+}
+
 func (s *nearest) nextDir(survey mazelib.Survey) int {
 	if len(s.path) == 0 {
 		s.path = s.memory.ShortestPathToUnexplored(s.pos)

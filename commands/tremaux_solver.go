@@ -10,6 +10,10 @@ type tremaux struct {
 	backtracking bool
 }
 
+func newTremaux() solver {
+	return &tremaux{}
+}
+
 func (s *tremaux) nextDir(survey mazelib.Survey) int {
 	valid := validDirections(survey)
 	minDir := valid[0]

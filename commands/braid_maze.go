@@ -6,6 +6,26 @@ import (
 	"github.com/golangchallenge/gc6/mazelib"
 )
 
+func braid() *Maze {
+	m := emptyMaze()
+	m.addBounds()
+
+	m.braidFill()
+
+	m.placeRandomly()
+	for !m.isSolvable() {
+		m.placeRandomly()
+	}
+	m.SetStartPoint(m.start.X, m.start.Y)
+	m.SetTreasure(m.end.X, m.end.Y)
+
+	if m.containsOneWayWalls() {
+		panic("Oh no! One way walls!")
+	}
+
+	return m
+}
+
 func (m *Maze) braidFill() {
 	for wallCount := 0; wallCount < 550; wallCount++ {
 		loc := m.randCoord()

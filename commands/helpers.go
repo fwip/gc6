@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"errors"
 	"fmt"
 	"math/rand"
 
@@ -199,4 +200,22 @@ func (m *Maze) isConnected(start, end mazelib.Coordinate, visited map[mazelib.Co
 		}
 	}
 	return false
+}
+
+func (m *Maze) getRoomAt(c mazelib.Coordinate) (*mazelib.Room, error) {
+	return m.GetRoom(c.X, c.Y)
+}
+
+func (m *Maze) moveDir(dir int) error {
+	switch dir {
+	case mazelib.N:
+		return m.MoveUp()
+	case mazelib.E:
+		return m.MoveRight()
+	case mazelib.S:
+		return m.MoveDown()
+	case mazelib.W:
+		return m.MoveLeft()
+	}
+	return errors.New("Invalid direction")
 }
