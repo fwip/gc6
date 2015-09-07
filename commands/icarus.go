@@ -127,10 +127,11 @@ func ToReply(in []byte) mazelib.Reply {
 }
 
 type tremaux struct {
-	memory  map[mazelib.Coordinate]mazelib.Survey
-	visited map[mazelib.Coordinate]int
-	pos     mazelib.Coordinate
-	dir     int
+	memory       map[mazelib.Coordinate]mazelib.Survey
+	visited      map[mazelib.Coordinate]int
+	pos          mazelib.Coordinate
+	dir          int
+	backtracking bool
 }
 
 func nextCoord(c mazelib.Coordinate, direction int) mazelib.Coordinate {
@@ -141,9 +142,9 @@ func nextCoord(c mazelib.Coordinate, direction int) mazelib.Coordinate {
 	case mazelib.S:
 		out.Y++
 	case mazelib.E:
-		out.X--
-	case mazelib.W:
 		out.X++
+	case mazelib.W:
+		out.X--
 	}
 	return out
 }
@@ -165,7 +166,42 @@ func validDirections(s mazelib.Survey) []int {
 	return adjacent
 }
 
-func (s tremaux) Solve(surveys <-chan mazelib.Survey, cmds chan<- int) {
+func canGo(s mazelib.Survey, dir int) bool {
+	switch dir {
+	case mazelib.N:
+		return !s.Top
+	case mazelib.S:
+		return !s.Bottom
+	case mazelib.E:
+		return !s.Right
+	case mazelib.W:
+		return !s.Left
+	}
+	return false
+}
+
+func isJunction(svy mazelib.Survey) bool {
+	return len(validDirections(svy)) > 2
+}
+
+func (s *tremaux) nextDir(survey mazelib.Survey) int {
+	valid := validDirections(survey)
+	minDir := valid[0]
+	minCost := s.visited[nextCoord(s.pos, minDir)]
+
+	for _, dir := range valid[1:] {
+		cost := s.visited[nextCoord(s.pos, dir)]
+		if cost < minCost {
+			minDir = dir
+			minCost = cost
+		}
+	}
+
+	return minDir
+}
+
+func (s *tremaux) Solve(surveys <-chan mazelib.Survey, cmds chan<- int) {
+	defer close(cmds)
 	s.dir = mazelib.N
 
 	s.memory = make(map[mazelib.Coordinate]mazelib.Survey)
@@ -175,37 +211,39 @@ func (s tremaux) Solve(surveys <-chan mazelib.Survey, cmds chan<- int) {
 		s.visited[s.pos]++
 		s.memory[s.pos] = survey
 
-		// TODO: This is bad code
-		valid := validDirections(survey)
-		s.dir = valid[0]
-		for _, dir := range valid {
-			c := nextCoord(s.pos, dir)
-			if s.visited[c] == 1 {
-				s.dir = dir
-			}
+		newdir := s.nextDir(survey)
+		ahead := nextCoord(s.pos, newdir)
+		if !s.backtracking && s.visited[ahead] > 0 {
+			newdir = int(direction(s.dir).Reverse())
+			s.backtracking = true
 		}
-		for _, dir := range valid {
-			c := nextCoord(s.pos, dir)
-			if s.visited[c] == 0 {
-				s.dir = dir
-			}
-		}
-		//TODO: Implement turn-around "penalty"
 
+		if int(direction(newdir).Reverse()) == s.dir {
+			s.visited[s.pos]++
+		}
+
+		if s.visited[ahead] == 0 {
+			s.backtracking = false
+		}
+
+		s.dir = newdir
 		s.pos = nextCoord(s.pos, s.dir)
 		cmds <- s.dir
 	}
 }
 
 func runSolver(s solver) {
-	surveys := make(chan mazelib.Survey)
+	surveys := make(chan mazelib.Survey, 1)
 	cmds := make(chan int)
-
-	go s.Solve(surveys, cmds)
+	defer close(surveys)
 
 	var err error
 	survey := awake()
 	surveys <- survey
+	go s.Solve(surveys, cmds)
+
+	maxSteps := viper.GetInt("max-steps")
+	steps := 0
 
 	for dir := range cmds {
 		name, ok := dirName[dir]
@@ -214,24 +252,36 @@ func runSolver(s solver) {
 			return
 		}
 
-		fmt.Println("Going", name)
 		survey, err = Move(name)
 
 		if err.Error() != "" {
 			fmt.Println("Error!", err)
-			close(surveys)
 			return
 		}
 		surveys <- survey
+		steps++
+		if steps > maxSteps {
+			fmt.Printf("Reached max-steps (%d), halting\n", maxSteps)
+			return
+		}
+
 	}
 
 }
+
+type noop struct{}
+
+func (s noop) Solve(surveys <-chan mazelib.Survey, cmds chan<- int) {
+	close(cmds)
+}
+
+func (s noop) Write(p []byte) (n int, err error) { return len(p), nil }
 
 // TODO: This is where you work your magic
 func solveMaze() {
 	//_ = awake() // Need to start with waking up to initialize a new maze
 	// You'll probably want to set this to a named value and start by figuring
 	// out which step to take next
-	runSolver(tremaux{})
+	runSolver(&tremaux{})
 
 }
