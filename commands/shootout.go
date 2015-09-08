@@ -4,6 +4,7 @@ package commands
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/golangchallenge/gc6/mazelib"
 	"github.com/spf13/cobra"
@@ -38,15 +39,19 @@ func shootout(gens []mazeGen, solvers []solverGen) {
 	fmt.Println(solvers)
 	times := viper.GetInt("times")
 
+	var w sync.WaitGroup
 	results := make([][]int, len(gens))
-	for i, g := range gens {
+	for i := range gens {
 		results[i] = make([]int, len(solvers))
-		for j, s := range solvers {
-			total, _ := fight(g, s, times)
-			//fmt.Println("Result:", total, fail)
-			results[i][j] = total
+		for j := range solvers {
+			w.Add(1)
+			go func(times, i, j int) {
+				results[i][j] = fight(gens[i], solvers[j], times)
+				w.Done()
+			}(times, i, j)
 		}
 	}
+	w.Wait()
 	printTable(results)
 }
 
@@ -67,18 +72,14 @@ func printTable(table [][]int) {
 	}
 }
 
-func fight(gen mazeGen, solver solverGen, times int) (avg, fail int) {
+func fight(gen mazeGen, solver solverGen, times int) (avgSteps int) {
 	total := 0
 	for i := 0; i < times; i++ {
 		m := gen()
 		steps := solveIt(m, solver())
-		if steps < 0 {
-			fail++
-		} else {
-			total += steps
-		}
+		total += steps
 	}
-	return total / (times - fail), fail
+	return total / times
 }
 
 func solveIt(m *Maze, s solver) int {
