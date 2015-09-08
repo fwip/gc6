@@ -13,7 +13,7 @@ import (
 type mazeGen func() *Maze
 type solverGen func() solver
 
-var gens = []mazeGen{braid}
+var gens = []mazeGen{empty, braid, growingTree}
 var solvers = []solverGen{newTremaux, newNearest}
 
 var shootoutCmd = &cobra.Command{
@@ -36,13 +36,14 @@ func init() {
 func shootout(gens []mazeGen, solvers []solverGen) {
 	fmt.Println(gens)
 	fmt.Println(solvers)
+	times := viper.GetInt("times")
 
 	results := make([][]int, len(gens))
 	for i, g := range gens {
 		results[i] = make([]int, len(solvers))
 		for j, s := range solvers {
-			total, fail := fight(g, s, 10000)
-			fmt.Println("Result:", total, fail)
+			total, _ := fight(g, s, times)
+			//fmt.Println("Result:", total, fail)
 			results[i][j] = total
 		}
 	}
@@ -97,12 +98,11 @@ func solveIt(m *Maze, s solver) int {
 		err := m.moveDir(dir)
 		if err != nil {
 			fmt.Println(err)
-			return -1
+			return 100000000
 		}
 
 		if steps > maxSteps {
-			//fmt.Printf("Reached max-steps (%d), halting\n", maxSteps)
-			return -1
+			return steps
 		}
 	}
 
