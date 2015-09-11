@@ -1,7 +1,7 @@
 // This keeps track of all the unexplored (accessible) rooms, and at each step just runs toward whichever is closest
 package commands
 
-import "github.com/golangchallenge/gc6/mazelib"
+import "github.com/fwip/gc6/mazelib"
 
 type nearest struct {
 	memory plot

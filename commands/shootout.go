@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/golangchallenge/gc6/mazelib"
+	"github.com/fwip/gc6/mazelib"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )

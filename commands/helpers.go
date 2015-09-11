@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"math/rand"
 
-	"github.com/golangchallenge/gc6/mazelib"
+	"github.com/fwip/gc6/mazelib"
 )
 
 type path []int

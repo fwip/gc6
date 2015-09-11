@@ -3,7 +3,7 @@ package commands
 import (
 	"math/rand"
 
-	"github.com/golangchallenge/gc6/mazelib"
+	"github.com/fwip/gc6/mazelib"
 )
 
 func growingTree() *Maze {

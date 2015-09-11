@@ -1,6 +1,6 @@
 package commands
 
-import "github.com/golangchallenge/gc6/mazelib"
+import "github.com/fwip/gc6/mazelib"
 
 type tremaux struct {
 	memory       map[mazelib.Coordinate]mazelib.Survey
