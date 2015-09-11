@@ -12,17 +12,6 @@ func braid() *Maze {
 
 	m.braidFill()
 
-	m.placeRandomly()
-	for !m.isSolvable() {
-		m.placeRandomly()
-	}
-	m.SetStartPoint(m.start.X, m.start.Y)
-	m.SetTreasure(m.end.X, m.end.Y)
-
-	if m.containsOneWayWalls() {
-		panic("Oh no! One way walls!")
-	}
-
 	return m
 }
 

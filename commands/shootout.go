@@ -14,7 +14,7 @@ import (
 type mazeGen func() *Maze
 type solverGen func() solver
 
-var gens = []mazeGen{empty, braid, growingTree}
+var gens = []mazeGen{empty, braid, growingTree, growingTree20}
 var solvers = []solverGen{newTremaux, newNearest}
 
 var shootoutCmd = &cobra.Command{
@@ -35,8 +35,6 @@ func init() {
 }
 
 func shootout(gens []mazeGen, solvers []solverGen) {
-	fmt.Println(gens)
-	fmt.Println(solvers)
 	times := viper.GetInt("times")
 
 	var w sync.WaitGroup
@@ -75,7 +73,7 @@ func printTable(table [][]int) {
 func fight(gen mazeGen, solver solverGen, times int) (avgSteps int) {
 	total := 0
 	for i := 0; i < times; i++ {
-		m := gen()
+		m := getSolvable(gen)
 		steps := solveIt(m, solver())
 		total += steps
 	}

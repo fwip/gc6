@@ -8,29 +8,27 @@ import (
 
 func growingTree() *Maze {
 	m := fullMaze()
-
-	m.growTree()
-
-	m.placeRandomly()
-	for !m.isSolvable() {
-		m.placeRandomly()
-	}
-	m.SetStartPoint(m.start.X, m.start.Y)
-	m.SetTreasure(m.end.X, m.end.Y)
-
-	if m.containsOneWayWalls() {
-		panic("Oh no! One way walls!")
-	}
+	m.growTree(100)
 
 	return m
 }
 
-func (m *Maze) growTree() {
+func growingTree20() *Maze {
+	m := fullMaze()
+	m.growTree(20)
+	return m
+}
+
+func (m *Maze) growTree(prob int) {
 	start := m.randCoord()
 	toCarve := []mazelib.Coordinate{start}
 
 	for len(toCarve) > 0 {
-		idx := rand.Intn(len(toCarve))
+
+		idx := 0
+		if rand.Intn(100) < prob {
+			idx = rand.Intn(len(toCarve))
+		}
 		c := toCarve[idx]
 
 		neighbors := m.unmadeNeighbors(c)
@@ -41,9 +39,7 @@ func (m *Maze) growTree() {
 			m.carveTo(c, n)
 			toCarve = append(toCarve, n)
 		}
-
 	}
-
 }
 
 var offsets = []struct{ X, Y int }{

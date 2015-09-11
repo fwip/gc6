@@ -24,8 +24,8 @@ import (
 	"os/signal"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"github.com/fwip/gc6/mazelib"
+	"github.com/gin-gonic/gin"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -372,6 +372,25 @@ func fullMaze() *Maze {
 	return z
 }
 
+func getSolvable(generate func() *Maze) *Maze {
+	m := generate()
+
+	m.placeRandomly()
+	for !m.isSolvable() {
+		m = generate()
+		m.placeRandomly()
+	}
+	m.SetStartPoint(m.start.X, m.start.Y)
+	m.SetTreasure(m.end.X, m.end.Y)
+
+	// This is illegal to do
+	if m.containsOneWayWalls() {
+		panic("Oh no! One way walls!")
+	}
+
+	return m
+}
+
 func createMaze() *Maze {
-	return braid()
+	return getSolvable(braid)
 }
