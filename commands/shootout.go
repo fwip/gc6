@@ -21,10 +21,6 @@ var shootoutCmd = &cobra.Command{
 	Use:     "shootout",
 	Aliases: []string{"bench"},
 	Short:   "Bench each solver against each maze type",
-	//Long: `Daedalus's job is to create a challenging Labyrinth for his opponent
-	//Icarus to solve.
-	//
-	//Daedalus runs a server which Icarus clients can connect to to solve laybrinths.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		shootout(gens, solvers)
 	},

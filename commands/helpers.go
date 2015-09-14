@@ -18,8 +18,6 @@ func (p *plot) Record(c mazelib.Coordinate, s mazelib.Survey) {
 
 func (p *plot) ShortestPathToUnexplored(start mazelib.Coordinate) path {
 	directions := make(map[mazelib.Coordinate]int)
-	//queue := make([]mazelib.Coordinate, 0, 64)
-	//queue = append(queue, start)
 	queue := []mazelib.Coordinate{start}
 
 	current := start
@@ -27,16 +25,13 @@ func (p *plot) ShortestPathToUnexplored(start mazelib.Coordinate) path {
 		current = queue[0]
 		svy, explored := (*p)[current]
 
-		//fmt.Println("Q:", start, current, svy, explored, queue)
 		if !explored { // We found where we're going!
-			//fmt.Println("Unexp:", current)
 			break
 		}
 
 		dirs := validDirections(svy)
 		for _, dir := range dirs {
 			n := nextCoord(current, dir)
-			//fmt.Println("dir:", dir, n)
 			if _, visited := directions[n]; !visited {
 				directions[n] = dir
 				queue = append(queue, n)
@@ -49,7 +44,6 @@ func (p *plot) ShortestPathToUnexplored(start mazelib.Coordinate) path {
 	for current != start {
 		dir := directions[current]
 		path = append([]int{dir}, path...)
-		//fmt.Println("Checking", current, dir, path)
 		current = nextCoord(current, int(direction(dir).Reverse()))
 	}
 

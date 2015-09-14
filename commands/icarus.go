@@ -95,7 +95,6 @@ func Move(direction string) (mazelib.Survey, error) {
 		rep := ToReply(contents)
 		if rep.Victory == true {
 			fmt.Println(rep.Message)
-			// os.Exit(1)
 			return rep.Survey, mazelib.ErrVictory
 		} else {
 			return rep.Survey, errors.New(rep.Message)
