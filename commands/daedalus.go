@@ -392,5 +392,5 @@ func getSolvable(generate func() *Maze) *Maze {
 }
 
 func createMaze() *Maze {
-	return getSolvable(braid)
+	return getSolvable(growingTree)
 }
