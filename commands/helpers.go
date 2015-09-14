@@ -178,6 +178,9 @@ func (m *Maze) placeRandomly() {
 }
 
 func (m *Maze) isSolvable() bool {
+	if m.start == m.end {
+		return false
+	}
 	return m.isConnected(m.start, m.end, nil)
 }
 

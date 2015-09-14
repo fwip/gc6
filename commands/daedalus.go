@@ -375,7 +375,6 @@ func fullMaze() *Maze {
 func getSolvable(generate func() *Maze) *Maze {
 	m := generate()
 
-	m.placeRandomly()
 	for !m.isSolvable() {
 		m = generate()
 		m.placeRandomly()
