@@ -16,7 +16,8 @@ func braid() *Maze {
 }
 
 func (m *Maze) braidFill() {
-	for wallCount := 0; wallCount < 550; wallCount++ {
+	limit := m.Width() * m.Height() * 4
+	for wallCount := 0; wallCount < limit; wallCount++ {
 		loc := m.randCoord()
 		dir := mazelib.E
 		if rand.Intn(2) == 1 {
